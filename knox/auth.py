@@ -26,19 +26,22 @@ class TokenAuthentication(BaseAuthentication):
     model = AuthToken
 
     def authenticate(self, request):
-        auth = get_authorization_header(request).split()
+        try:
+            auth = get_authorization_header(request).split()
 
-        if not auth or auth[0].lower() != b'token':
-            return None
+            if not auth or auth[0].lower() != b'token':
+                return None
 
-        if len(auth) == 1:
-            msg = _('Invalid token header. No credentials provided.')
+            if len(auth) == 1:
+                msg = _('Invalid token header. No credentials provided.')
+                raise exceptions.AuthenticationFailed(msg)
+            elif len(auth) > 2:
+                msg = _('Invalid token header. Token string should not contain spaces.')
+                raise exceptions.AuthenticationFailed(msg)
+            return self.authenticate_credentials(auth[1])
+        except TypeError:
+            msg = _('Invalid token header.')
             raise exceptions.AuthenticationFailed(msg)
-        elif len(auth) > 2:
-            msg = _('Invalid token header. Token string should not contain spaces.')
-            raise exceptions.AuthenticationFailed(msg)
-
-        return self.authenticate_credentials(auth[1])
 
     def authenticate_credentials(self, token):
         '''
